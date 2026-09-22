@@ -1575,6 +1575,7 @@ function abilityMoveTransform(a,m){
 function resetOncePerBattleAbilityFlags(mon){if(!mon)return;mon.proteanUsed=false;mon.disguiseBroken=false}
 
 function changeStage(mon,key,delta,label){
+ label=label||({atk:'공격',def:'방어',spa:'특수공격',spd:'특수방어',spe:'스피드',acc:'명중률',eva:'회피율'}[key]||key);
  if(mon.ability==='심술꾸러기')delta=-delta;
  if(!mon.stages)mon.stages={atk:0,def:0,spa:0,spd:0,spe:0};
  if(delta<0){
@@ -2854,6 +2855,7 @@ function stageMult(stage){
  return stage>=0?(2+stage)/2:2/(2-stage);
 }
 function changeStage(mon,key,delta,label){
+ label=label||({atk:'공격',def:'방어',spa:'특수공격',spd:'특수방어',spe:'스피드',acc:'명중률',eva:'회피율'}[key]||key);
  ensureBattleState(mon);
  if(mon.ability==='심술꾸러기')delta=-delta;
  const old=mon.stages[key]||0;
@@ -3861,6 +3863,7 @@ back.addEventListener('click',()=>{try{window.restorePartySetupV94?.()}catch(_){
 
  // External-vs-self stat drop awareness. Clear Body/White Smoke/Hyper Cutter only stop opponent-caused drops.
  changeStage=function(mon,key,delta,label,source){
+   label=label||({atk:'공격',def:'방어',spa:'특수공격',spd:'특수방어',spe:'스피드',acc:'명중률',eva:'회피율'}[key]||key);
    ensureBattleState(mon);
    if(mon.ability==='심술꾸러기')delta=-delta;
    const actor=source||window.__activeActor;
@@ -6008,5 +6011,66 @@ let f=x.rows.filter(z=>z.status==='FAIL').map(z=>`<tr><td>${z.group}</td><td>${z
 r.innerHTML=`<div class="v116summary"><span class="v116pass">✅ PASS ${x.pass}</span>　<span class="v116fail">❌ FAIL ${x.fail}</span>　TOTAL ${x.total}</div><table><thead><tr><th>분류</th><th>PASS / TOTAL</th><th>상태</th></tr></thead><tbody>${g}</tbody></table>${f?`<h3>실패 상세</h3><table>${f}</table>`:''}`;};})();
 </script>
 
+
+<script id="champions-db-foundation-v127">
+/* V127 — Pokémon Champions verified move-data foundation.
+   Source priority: Serebii Champions AttackDex + pokemon-champions-data v1.1.0.
+   This layer owns canonical numeric metadata only; bespoke battle effects stay in MOVE_DATA / effect handlers. */
+(function(){
+  const V='1.1.0';
+  const SOURCE='Pokemon Champions Data v1.1.0 / Serebii Champions';
+  const rows={
+    '에어슬래시':{en:'Air Slash',type:'비행',cat:'특수',power:75,acc:95,pp:16,priority:0},
+    '아쿠아제트':{en:'Aqua Jet',type:'물',cat:'물리',power:40,acc:100,pp:20,priority:1},
+    '아쿠아스텝':{en:'Aqua Step',type:'물',cat:'물리',power:80,acc:100,pp:12,priority:0},
+    '아머캐논':{en:'Armor Cannon',type:'불꽃',cat:'특수',power:120,acc:100,pp:8,priority:0},
+    '파동탄':{en:'Aura Sphere',type:'격투',cat:'특수',power:80,acc:null,pp:20,priority:0},
+    '고속이동':{en:'Agility',type:'에스퍼',cat:'변화',power:0,acc:null,pp:20,priority:0},
+    '배턴터치':{en:'Baton Pass',type:'노말',cat:'변화',power:0,acc:null,pp:20,priority:0},
+    '볼트체인지':{en:'Volt Switch',type:'전기',cat:'특수',power:70,acc:100,pp:20,priority:0},
+    '폭포오르기':{en:'Waterfall',type:'물',cat:'물리',power:80,acc:100,pp:16,priority:0},
+    '웨이브태클':{en:'Wave Crash',type:'물',cat:'물리',power:120,acc:100,pp:12,priority:0},
+    '도깨비불':{en:'Will-O-Wisp',type:'불꽃',cat:'변화',power:0,acc:85,pp:16,priority:0},
+    '하품':{en:'Yawn',type:'노말',cat:'변화',power:0,acc:null,pp:12,priority:0},
+    '사념의박치기':{en:'Zen Headbutt',type:'에스퍼',cat:'물리',power:80,acc:90,pp:16,priority:0}
+  };
+  window.CHAMPIONS_MOVE_SOURCE_V127={version:V,source:SOURCE,moves:rows};
+
+  function syncMoveDex(){
+    if(!Array.isArray(window.MOVEDEX) && typeof MOVEDEX==='undefined')return {updated:0,missing:Object.keys(rows)};
+    const dex=(typeof MOVEDEX!=='undefined'?MOVEDEX:window.MOVEDEX);
+    let updated=0; const missing=[];
+    for(const [name,d] of Object.entries(rows)){
+      const m=dex.find(x=>x&&x.name===name);
+      if(!m){missing.push(name);continue}
+      m.type=d.type;m.cat=d.cat;m.power=d.power;m.acc=d.acc;m.pp=d.pp;m.priority=d.priority;
+      m.championsVerified=true;m.championsSourceVersion=V; updated++;
+    }
+    return {updated,missing};
+  }
+
+  function auditLegacyConflicts(){
+    const html=document.documentElement.innerHTML;
+    const names=['하품','앙코르','도발','날개쉬기','전기자석파','탁쳐서떨구기'];
+    const result={};
+    for(const n of names){
+      const esc=n.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&');
+      result[n]={legacyIf:(html.match(new RegExp("if\\\\s*\\\\(.*?['\\\"]"+esc+"['\\\"]",'g'))||[]).length,moveData:!!(window.MOVE_DATA_V115&&window.MOVE_DATA_V115[n])};
+    }
+    return result;
+  }
+
+  const sync=syncMoveDex();
+  window.CHAMPIONS_DB_V127={version:V,source:SOURCE,sync,auditLegacyConflicts};
+  window.auditChampionsMovesV127=auditLegacyConflicts;
+
+  // Production-path regression hooks: metadata must mutate the actual MOVEDEX objects used by battle setup.
+  window.__tests=window.__tests||[];
+  window.__tests.push({name:'V127 Champions DB: Waterfall numeric metadata',run(){const m=MOVEDEX.find(x=>x.name==='폭포오르기');if(!m||m.power!==80||m.acc!==100||m.pp!==16)throw Error('Waterfall metadata mismatch')}});
+  window.__tests.push({name:'V127 Champions DB: Aqua Jet priority',run(){const m=MOVEDEX.find(x=>x.name==='아쿠아제트');if(!m||m.priority!==1)throw Error('Aqua Jet priority mismatch')}});
+  window.__tests.push({name:'V127 Champions DB: Will-O-Wisp accuracy/PP',run(){const m=MOVEDEX.find(x=>x.name==='도깨비불');if(!m||m.acc!==85||m.pp!==16)throw Error('Will-O-Wisp metadata mismatch')}});
+  window.__tests.push({name:'V127 Champions DB: Yawn PP',run(){const m=MOVEDEX.find(x=>x.name==='하품');if(!m||m.pp!==12)throw Error('Yawn metadata mismatch')}});
+})();
+</script>
 </body></html>
 
